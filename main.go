@@ -23,6 +23,19 @@ func splitFilePath(path string) string {
 	return path[len(path)-6:]
 }
 
+func idWBANtoMap(wbans []string, ids []interface{}) map[string]string {
+	if len(wbans) != len(ids) {
+		log.Fatal("arrays for object ids did not match")
+	}
+
+	m := make(map[string]string)
+	for i := 0; i < len(wbans); i++ {
+		str := fmt.Sprint(ids[i])
+		m[wbans[i]] = str[10 : len(str)-2]
+	}
+	return m
+}
+
 //daily
 //hourly
 //precip
@@ -52,12 +65,17 @@ func main() {
 	d := splitFilePath(pathToFile)
 
 	// STATIONS CSV
-	stns := processStationsCSV(pathToFile, d)
+	stns, stnWBANs := processStationsCSV(pathToFile, d)
 	insertManyResult, err := collection.InsertMany(context.TODO(), stns)
 	if err != nil {
 		log.Fatal(err)
 	}
-	fmt.Println("docs inserted: ", insertManyResult.InsertedIDs)
+	//fmt.Println("docs inserted: ", insertManyResult.InsertedIDs)
+	// fmt.Println(insertManyResult.InsertedIDs[0])
+	// create objectid / wban map
+	stationIDMap := idWBANtoMap(stnWBANs, insertManyResult.InsertedIDs)
+
+	fmt.Println(stationIDMap)
 
 	// CLOSE CONNECTION
 	err = client.Disconnect(context.TODO())

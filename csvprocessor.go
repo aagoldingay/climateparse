@@ -96,11 +96,11 @@ type Daily struct {
 	Max2Dir      string //48
 }
 
-func processStationsCSV(path string, id string) []interface{} {
+func processStationsCSV(path string, id string) ([]interface{}, []string) {
 	file, _ := os.Open(fmt.Sprintf("%s/%sstation.csv", path, id))
 	reader := csv.NewReader(bufio.NewReader(file))
-	// var stations []Station
 	var stations []interface{}
+	wbans := []string{}
 	firstLine := true
 	for {
 		line, err := reader.Read()
@@ -131,7 +131,7 @@ func processStationsCSV(path string, id string) []interface{} {
 			log.Fatal(err, strings.Trim(line[9], " "))
 		}
 		stations = append(stations, Station{
-			WBAN:                       strings.TrimLeft(line[0], "0"),
+			WBAN:                       strings.Trim(strings.TrimLeft(line[0], "0"), " "),
 			WMO:                        strings.Trim(line[1], " "),
 			CallSign:                   strings.Trim(line[2], " "),
 			ClimateDivisionCode:        strings.Trim(line[3], " "),
@@ -147,8 +147,9 @@ func processStationsCSV(path string, id string) []interface{} {
 			Barometer:                  strings.Trim(line[13], " "),
 			TimeZone:                   strings.Trim(line[14], " "),
 		})
+		wbans = append(wbans, strings.Trim(strings.TrimLeft(line[0], "0"), " "))
 	}
-	return stations
+	return stations, wbans
 }
 
 func processCSVData(path string) { // include data structure from processStationsCSV
