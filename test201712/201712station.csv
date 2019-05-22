@@ -1,0 +1,3 @@
+﻿WBAN,WMO,CallSign,ClimateDivisionCode,ClimateDivisionStateCode,ClimateDivisionStationCode,Name,State,Location,Latitude,Longitude,GroundHeight,StationHeight,Barometer,TimeZone
+00102,,IAN,,50,,KIANA,AK,BOB BARKER MEMORIAL AIRPORT,66.983,-160.433,168,,,-9
+00103,,IWK,,50,,WALES,AK,WALES AIRPORT,65.617,-168.1,23,,,-9
