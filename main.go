@@ -25,6 +25,7 @@ func splitFilePath(path string) string {
 
 func idWBANtoMap(wbans []string, ids []interface{}) map[string]string {
 	if len(wbans) != len(ids) {
+		fmt.Printf("strings: %v | ids: %v", len(wbans), len(ids))
 		log.Fatal("arrays for object ids did not match")
 	}
 
@@ -35,11 +36,6 @@ func idWBANtoMap(wbans []string, ids []interface{}) map[string]string {
 	}
 	return m
 }
-
-//daily
-//hourly
-//precip
-//station
 
 func main() {
 	// OPEN CONNECTION
@@ -59,23 +55,31 @@ func main() {
 		fmt.Printf("PROBLEM : %v\n", fmt.Sprintf("ping err = %v", err))
 		os.Exit(1)
 	}
-	collection := client.Database("climate").Collection("stations")
+	db := client.Database("climate")
 
 	pathToFile := getFileFromArguments()
 	d := splitFilePath(pathToFile)
 
 	// STATIONS CSV
 	stns, stnWBANs := processStationsCSV(pathToFile, d)
-	insertManyResult, err := collection.InsertMany(context.TODO(), stns)
+	insertManyResult, err := db.Collection("stations").InsertMany(context.TODO(), stns)
 	if err != nil {
 		log.Fatal(err)
 	}
-	//fmt.Println("docs inserted: ", insertManyResult.InsertedIDs)
-	// fmt.Println(insertManyResult.InsertedIDs[0])
-	// create objectid / wban map
+
+	// create wban / objectid map
 	stationIDMap := idWBANtoMap(stnWBANs, insertManyResult.InsertedIDs)
 
-	fmt.Println(stationIDMap)
+	// unset slices
+	stns = []interface{}{}
+	stnWBANs = []string{}
+
+	// PRECIP CSV
+	prcps := processPrecipCSV(pathToFile, d, stationIDMap)
+	_, err = db.Collection("precips").InsertMany(context.TODO(), prcps)
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	// CLOSE CONNECTION
 	err = client.Disconnect(context.TODO())

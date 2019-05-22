@@ -9,6 +9,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"time"
 )
 
 // Station models data from the corresponding CSV data
@@ -32,15 +33,16 @@ type Station struct {
 
 // Precip models data from the corresponding CSV data
 type Precip struct {
-	WBAN          string
-	YearMonthDay  string
-	Hour          string
-	Precipitation string
+	WBAN          string //0
+	StationID     string
+	TimeDate      time.Time //yeardaymonth = 1, hour = 2
+	Precipitation float64   //3
 }
 
 // Hourly models data from the corresponding CSV data
 type Hourly struct {
 	WBAN                string //0
+	StationID           string
 	Date                string //1
 	Time                string //2
 	StationType         string //3
@@ -69,6 +71,7 @@ type Hourly struct {
 // Daily models data from the corresponding CSV data
 type Daily struct {
 	WBAN         string //0
+	StationID    string
 	YearMonthDay string //1
 	Tmax         string //2
 	Tmin         string //4
@@ -96,7 +99,7 @@ type Daily struct {
 	Max2Dir      string //48
 }
 
-func processStationsCSV(path string, id string) ([]interface{}, []string) {
+func processStationsCSV(path, id string) ([]interface{}, []string) {
 	file, _ := os.Open(fmt.Sprintf("%s/%sstation.csv", path, id))
 	reader := csv.NewReader(bufio.NewReader(file))
 	var stations []interface{}
@@ -124,11 +127,11 @@ func processStationsCSV(path string, id string) ([]interface{}, []string) {
 		}
 		lon, err := strconv.ParseFloat(strings.Trim(line[10], " "), 64)
 		if err != nil {
-			log.Fatal(err, strings.Trim(line[9], " "))
+			log.Fatal(err, strings.Trim(line[10], " "))
 		}
 		gr, err := strconv.Atoi(strings.Trim(line[11], " "))
 		if err != nil {
-			log.Fatal(err, strings.Trim(line[9], " "))
+			log.Fatal(err, strings.Trim(line[11], " "))
 		}
 		stations = append(stations, Station{
 			WBAN:                       strings.Trim(strings.TrimLeft(line[0], "0"), " "),
@@ -152,6 +155,52 @@ func processStationsCSV(path string, id string) ([]interface{}, []string) {
 	return stations, wbans
 }
 
-func processCSVData(path string) { // include data structure from processStationsCSV
+//daily
+//hourly
 
+func processPrecipCSV(path, id string, stationIDs map[string]string) []interface{} {
+	file, _ := os.Open(fmt.Sprintf("%s/%sprecip.csv", path, id))
+	reader := csv.NewReader(bufio.NewReader(file))
+	var precips []interface{}
+	firstLine := true
+	for {
+		line, err := reader.Read()
+		if firstLine {
+			firstLine = !firstLine
+			continue
+		}
+		if err == io.EOF {
+			break
+		} else if err != nil {
+			log.Fatal(err)
+		}
+
+		if line[0] == "" { // not concerned if there is no WBAN identifier
+			continue
+		}
+
+		h, err := strconv.Atoi(strings.Trim(line[2], " "))
+		if err != nil {
+			log.Fatal(err, strings.Trim(line[9], " "))
+		}
+		prec, err := strconv.ParseFloat(strings.Trim(line[3], " "), 64)
+		if err != nil {
+			prec = 0.0
+		}
+		td, _ := time.Parse("20060102 15", fmt.Sprintf("%s %v", line[1], h-1))
+
+		// map
+		id, prs := stationIDs[strings.Trim(strings.TrimLeft(line[0], "0"), " ")]
+		if !prs {
+			log.Printf("entry not with a station: %v\n", strings.Trim(strings.TrimLeft(line[0], "0"), " "))
+			continue
+		}
+		precips = append(precips, Precip{
+			WBAN:          strings.Trim(strings.TrimLeft(line[0], "0"), " "),
+			StationID:     id,
+			TimeDate:      td,
+			Precipitation: prec,
+		})
+	}
+	return precips
 }
