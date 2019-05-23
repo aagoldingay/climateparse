@@ -81,6 +81,26 @@ func main() {
 		log.Fatal(err)
 	}
 
+	prcps = []interface{}{}
+
+	// DAILY CSV
+	dlys := processDailyCSV(pathToFile, d, stationIDMap)
+	_, err = db.Collection("dailys").InsertMany(context.TODO(), dlys)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	dlys = []interface{}{}
+
+	// HOURLY CSV
+	hrlys := processHourlyCSV(pathToFile, d, stationIDMap)
+	_, err = db.Collection("hrlys").InsertMany(context.TODO(), hrlys)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	hrlys = []interface{}{}
+
 	// CLOSE CONNECTION
 	err = client.Disconnect(context.TODO())
 

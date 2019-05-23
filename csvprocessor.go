@@ -43,60 +43,54 @@ type Precip struct {
 type Hourly struct {
 	WBAN                string //0
 	StationID           string
-	Date                string //1
-	Time                string //2
-	StationType         string //3
-	SkyCondition        string //4
-	Visibility          string //6
-	WeatherType         string //8
-	DryBulbFarenheit    string //10
-	DryBulbCelsius      string //12
-	WetBulbFarenheit    string //14
-	WetBulbCelsius      string //16
-	DewPointFarenheit   string //18
-	DewPointCelsius     string //20
-	RelativeHumidity    string //22
-	WindSpeed           string //24
-	WindDirection       string //26
-	ValueForWind        string //28
-	StationPressure     string //30
-	PressureTendency    string //32
-	PressureChange      string //34
-	SeaLevelPressure    string //36
-	RecordType          string //38
-	HourlyPrecipitation string //40
-	Altimeter           string //42
+	Date                time.Time //date = 1, time = 2
+	StationType         string    //3
+	SkyCondition        []string  //4
+	Visibility          float64   //6
+	WeatherType         []string  //8
+	DryBulbFarenheit    int       //10
+	DryBulbCelsius      float64   //12
+	WetBulbFarenheit    int       //14
+	WetBulbCelsius      float64   //16
+	DewPointFarenheit   int       //18
+	DewPointCelsius     float64   //20
+	RelativeHumidity    int       //22
+	WindSpeed           int       //24
+	WindDirection       int       //26
+	ValueForWind        int       //28
+	StationPressure     float64   //30
+	PressureTendency    string    //32
+	PressureChange      string    //34
+	SeaLevelPressure    float64   //36
+	RecordType          string    //38
+	HourlyPrecipitation float64   //40
+	Altimeter           float64   //42
 }
 
 // Daily models data from the corresponding CSV data
 type Daily struct {
 	WBAN         string //0
 	StationID    string
-	YearMonthDay string //1
-	Tmax         string //2
-	Tmin         string //4
-	Tavg         string //6
-	Depart       string //8
-	DewPoint     string //10
-	WetBulb      string //12
-	Heat         string //14
-	Cool         string //16
-	Sunrise      string //18
-	Sunset       string //20
-	CodeSum      string //22
-	Depth        string //24
-	Water1       string //26
-	SnowFall     string //28
-	PrecipTotal  string //30
-	StnPressure  string //32
-	SeaLevel     string //34
-	ResultSpeed  string //36
-	ResultDir    string //38
-	AvgSpeed     string //40
-	Max5Speed    string //42
-	Max5Dir      string //44
-	Max2Speed    string //46
-	Max2Dir      string //48
+	YearMonthDay time.Time //1
+	Tmax         int       //2
+	Tmin         int       //4
+	Tavg         int       //6
+	DewPoint     int       //10
+	WetBulb      int       //12
+	Heat         int       //14
+	Cool         int       //16
+	CodeSum      []string  //22
+	SnowFall     float64   //28
+	PrecipTotal  float64   //30
+	StnPressure  float64   //32
+	SeaLevel     float64   //34
+	ResultSpeed  float64   //36
+	ResultDir    int       //38
+	AvgSpeed     float64   //40
+	Max5Speed    int       //42
+	Max5Dir      int       //44
+	Max2Speed    int       //46
+	Max2Dir      int       //48
 }
 
 func processStationsCSV(path, id string) ([]interface{}, []string) {
@@ -189,7 +183,6 @@ func processPrecipCSV(path, id string, stationIDs map[string]string) []interface
 		}
 		td, _ := time.Parse("20060102 15", fmt.Sprintf("%s %v", line[1], h-1))
 
-		// map
 		id, prs := stationIDs[strings.Trim(strings.TrimLeft(line[0], "0"), " ")]
 		if !prs {
 			log.Printf("entry not with a station: %v\n", strings.Trim(strings.TrimLeft(line[0], "0"), " "))
@@ -203,4 +196,224 @@ func processPrecipCSV(path, id string, stationIDs map[string]string) []interface
 		})
 	}
 	return precips
+}
+
+func processDailyCSV(path, id string, stationIDs map[string]string) []interface{} {
+	file, _ := os.Open(fmt.Sprintf("%s/%sdaily.csv", path, id))
+	reader := csv.NewReader(bufio.NewReader(file))
+	var dailys []interface{}
+	firstLine := true
+	for {
+		line, err := reader.Read()
+		if firstLine {
+			firstLine = !firstLine
+			continue
+		}
+		if err == io.EOF {
+			break
+		} else if err != nil {
+			log.Fatal(err)
+		}
+
+		if line[0] == "" { // not concerned if there is no WBAN identifier
+			continue
+		}
+		id, prs := stationIDs[strings.Trim(strings.TrimLeft(line[0], "0"), " ")]
+		if !prs {
+			log.Printf("entry not with a station: %v\n", strings.Trim(strings.TrimLeft(line[0], "0"), " "))
+			continue
+		}
+
+		td, _ := time.Parse("20060102", line[1])
+
+		dly := Daily{
+			WBAN:         strings.Trim(strings.TrimLeft(line[0], "0"), " "),
+			StationID:    id,
+			YearMonthDay: td,
+		}
+
+		// some of these values show invalid, best not add them if possible
+		tmax, err := strconv.Atoi(strings.Trim(line[2], " "))
+		if err == nil {
+			dly.Tmax = tmax
+		}
+		tmin, err := strconv.Atoi(strings.Trim(line[4], " "))
+		if err == nil {
+			dly.Tmin = tmin
+		}
+		tavg, err := strconv.Atoi(strings.Trim(line[6], " "))
+		if err == nil {
+			dly.Tavg = tavg
+		}
+		dp, err := strconv.Atoi(strings.Trim(line[10], " "))
+		if err == nil {
+			dly.DewPoint = dp
+		}
+		wb, err := strconv.Atoi(strings.Trim(line[12], " "))
+		if err == nil {
+			dly.WetBulb = wb
+		}
+		heat, err := strconv.Atoi(strings.Trim(line[14], " "))
+		if err == nil {
+			dly.Heat = heat
+		}
+		cool, err := strconv.Atoi(strings.Trim(line[16], " "))
+		if err == nil {
+			dly.Cool = cool
+		}
+		// split codesum
+		sf, err := strconv.ParseFloat(strings.Trim(line[28], " "), 64)
+		if err == nil {
+			dly.SnowFall = sf
+		}
+		pt, err := strconv.ParseFloat(strings.Trim(line[30], " "), 64)
+		if err == nil {
+			dly.PrecipTotal = pt
+		}
+		sp, err := strconv.ParseFloat(strings.Trim(line[32], " "), 64)
+		if err == nil {
+			dly.StnPressure = sp
+		}
+		sl, err := strconv.ParseFloat(strings.Trim(line[34], " "), 64)
+		if err == nil {
+			dly.SeaLevel = sl
+		}
+		rs, err := strconv.ParseFloat(strings.Trim(line[36], " "), 64)
+		if err == nil {
+			dly.ResultSpeed = rs
+		}
+		rd, err := strconv.Atoi(strings.Trim(line[38], " "))
+		if err == nil {
+			dly.ResultDir = rd
+		}
+		as, err := strconv.ParseFloat(strings.Trim(line[40], " "), 64)
+		if err == nil {
+			dly.AvgSpeed = as
+		}
+		//
+		m5s, err := strconv.Atoi(strings.Trim(line[42], " "))
+		if err == nil {
+			dly.Max5Speed = m5s
+		}
+		m5d, err := strconv.Atoi(strings.Trim(line[44], " "))
+		if err == nil {
+			dly.Max5Dir = m5d
+		}
+		m2s, err := strconv.Atoi(strings.Trim(line[46], " "))
+		if err == nil {
+			dly.ResultDir = m2s
+		}
+		m2d, err := strconv.Atoi(strings.Trim(line[48], " "))
+		if err == nil {
+			dly.ResultDir = m2d
+		}
+		dailys = append(dailys, dly)
+	}
+	return dailys
+}
+
+func processHourlyCSV(path, id string, stationIDs map[string]string) []interface{} {
+	file, _ := os.Open(fmt.Sprintf("%s/%shourly.csv", path, id))
+	reader := csv.NewReader(bufio.NewReader(file))
+	var hourlys []interface{}
+	firstLine := true
+	for {
+		line, err := reader.Read()
+		if firstLine {
+			firstLine = !firstLine
+			continue
+		}
+		if err == io.EOF {
+			break
+		} else if err != nil {
+			log.Fatal(err)
+		}
+
+		if line[0] == "" { // not concerned if there is no WBAN identifier
+			continue
+		}
+
+		id, prs := stationIDs[strings.Trim(strings.TrimLeft(line[0], "0"), " ")]
+		if !prs {
+			log.Printf("entry not with a station: %v\n", strings.Trim(strings.TrimLeft(line[0], "0"), " "))
+			continue
+		}
+
+		td, _ := time.Parse("20060102 1504", fmt.Sprintf("%s %s", line[1], line[2]))
+		hrly := Hourly{
+			WBAN:             strings.Trim(strings.TrimLeft(line[0], "0"), " "),
+			StationID:        id,
+			Date:             td,
+			StationType:      strings.Trim(line[3], " "),
+			SkyCondition:     strings.Split(strings.Trim(line[4], " "), " "),
+			WeatherType:      strings.Split(strings.Trim(line[8], " "), " "),
+			PressureTendency: strings.Trim(line[32], " "),
+			PressureChange:   strings.Trim(line[34], " "),
+			RecordType:       strings.Trim(line[38], " "),
+		}
+
+		v, err := strconv.ParseFloat(strings.Trim(line[6], " "), 64)
+		if err == nil {
+			hrly.Visibility = v
+		}
+		dbc, err := strconv.ParseFloat(strings.Trim(line[12], " "), 64)
+		if err == nil {
+			hrly.DryBulbCelsius = dbc
+		}
+		wbc, err := strconv.ParseFloat(strings.Trim(line[16], " "), 64)
+		if err == nil {
+			hrly.WetBulbCelsius = wbc
+		}
+		dpc, err := strconv.ParseFloat(strings.Trim(line[20], " "), 64)
+		if err == nil {
+			hrly.DewPointCelsius = dpc
+		}
+		sp, err := strconv.ParseFloat(strings.Trim(line[30], " "), 64)
+		if err == nil {
+			hrly.StationPressure = sp
+		}
+		slp, err := strconv.ParseFloat(strings.Trim(line[36], " "), 64)
+		if err == nil {
+			hrly.SeaLevelPressure = slp
+		}
+		hp, err := strconv.ParseFloat(strings.Trim(line[40], " "), 64)
+		if err == nil {
+			hrly.HourlyPrecipitation = hp
+		}
+		a, err := strconv.ParseFloat(strings.Trim(line[42], " "), 64)
+		if err == nil {
+			hrly.Altimeter = a
+		}
+		dbf, err := strconv.Atoi(strings.Trim(line[10], " "))
+		if err == nil {
+			hrly.DryBulbFarenheit = dbf
+		}
+		wbf, err := strconv.Atoi(strings.Trim(line[14], " "))
+		if err == nil {
+			hrly.WetBulbFarenheit = wbf
+		}
+		dpf, err := strconv.Atoi(strings.Trim(line[18], " "))
+		if err == nil {
+			hrly.DewPointFarenheit = dpf
+		}
+		rh, err := strconv.Atoi(strings.Trim(line[22], " "))
+		if err == nil {
+			hrly.RelativeHumidity = rh
+		}
+		ws, err := strconv.Atoi(strings.Trim(line[24], " "))
+		if err == nil {
+			hrly.WindSpeed = ws
+		}
+		wd, err := strconv.Atoi(strings.Trim(line[26], " "))
+		if err == nil {
+			hrly.WindDirection = wd
+		}
+		vfw, err := strconv.Atoi(strings.Trim(line[28], " "))
+		if err == nil {
+			hrly.ValueForWind = vfw
+		}
+
+		hourlys = append(hourlys, hrly)
+	}
+	return hourlys
 }
