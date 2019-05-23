@@ -25,7 +25,7 @@ type Station struct {
 	Location                   string
 	Latitude                   float64
 	Longitude                  float64
-	GroundHeight               int
+	GroundHeight               float64
 	StationHeight              string // some blanks
 	Barometer                  string // some blanks
 	TimeZone                   string
@@ -94,12 +94,18 @@ type Daily struct {
 }
 
 func processStationsCSV(path, id string) ([]interface{}, []string) {
-	file, _ := os.Open(fmt.Sprintf("%s/%sstation.csv", path, id))
+	file, err := os.Open(fmt.Sprintf("%s/%sstation.csv", path, id))
+	if err != nil {
+		log.Fatal(err)
+	}
 	reader := csv.NewReader(bufio.NewReader(file))
+	fmt.Println("File found")
 	var stations []interface{}
 	wbans := []string{}
 	firstLine := true
+	i := 0
 	for {
+		fmt.Println(i)
 		line, err := reader.Read()
 		if firstLine {
 			firstLine = !firstLine
@@ -110,11 +116,10 @@ func processStationsCSV(path, id string) ([]interface{}, []string) {
 		} else if err != nil {
 			log.Fatal(err)
 		}
-
 		if line[0] == "" { // not concerned if there is no WBAN identifier
+			i++
 			continue
 		}
-
 		lat, err := strconv.ParseFloat(strings.Trim(line[9], " "), 64)
 		if err != nil {
 			log.Fatal(err, strings.Trim(line[9], " "))
@@ -123,7 +128,7 @@ func processStationsCSV(path, id string) ([]interface{}, []string) {
 		if err != nil {
 			log.Fatal(err, strings.Trim(line[10], " "))
 		}
-		gr, err := strconv.Atoi(strings.Trim(line[11], " "))
+		gr, err := strconv.ParseFloat(strings.Trim(line[11], " "), 64)
 		if err != nil {
 			log.Fatal(err, strings.Trim(line[11], " "))
 		}
@@ -145,6 +150,7 @@ func processStationsCSV(path, id string) ([]interface{}, []string) {
 			TimeZone:                   strings.Trim(line[14], " "),
 		})
 		wbans = append(wbans, strings.Trim(strings.TrimLeft(line[0], "0"), " "))
+		i++
 	}
 	return stations, wbans
 }
@@ -155,6 +161,7 @@ func processStationsCSV(path, id string) ([]interface{}, []string) {
 func processPrecipCSV(path, id string, stationIDs map[string]string) []interface{} {
 	file, _ := os.Open(fmt.Sprintf("%s/%sprecip.csv", path, id))
 	reader := csv.NewReader(bufio.NewReader(file))
+	fmt.Println("File found")
 	var precips []interface{}
 	firstLine := true
 	for {
@@ -201,6 +208,7 @@ func processPrecipCSV(path, id string, stationIDs map[string]string) []interface
 func processDailyCSV(path, id string, stationIDs map[string]string) []interface{} {
 	file, _ := os.Open(fmt.Sprintf("%s/%sdaily.csv", path, id))
 	reader := csv.NewReader(bufio.NewReader(file))
+	fmt.Println("File found")
 	var dailys []interface{}
 	firstLine := true
 	for {
@@ -315,6 +323,7 @@ func processDailyCSV(path, id string, stationIDs map[string]string) []interface{
 func processHourlyCSV(path, id string, stationIDs map[string]string) []interface{} {
 	file, _ := os.Open(fmt.Sprintf("%s/%shourly.csv", path, id))
 	reader := csv.NewReader(bufio.NewReader(file))
+	fmt.Println("File found")
 	var hourlys []interface{}
 	firstLine := true
 	for {

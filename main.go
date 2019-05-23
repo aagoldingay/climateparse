@@ -39,6 +39,7 @@ func idWBANtoMap(wbans []string, ids []interface{}) map[string]string {
 
 func main() {
 	// OPEN CONNECTION
+	fmt.Println("Connecting to Mongo")
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
@@ -61,11 +62,13 @@ func main() {
 	d := splitFilePath(pathToFile)
 
 	// STATIONS CSV
+	fmt.Println("Reading Stations")
 	stns, stnWBANs := processStationsCSV(pathToFile, d)
 	insertManyResult, err := db.Collection("stations").InsertMany(context.TODO(), stns)
 	if err != nil {
 		log.Fatal(err)
 	}
+	fmt.Println("Added Stations")
 
 	// create wban / objectid map
 	stationIDMap := idWBANtoMap(stnWBANs, insertManyResult.InsertedIDs)
@@ -75,29 +78,35 @@ func main() {
 	stnWBANs = []string{}
 
 	// PRECIP CSV
+	fmt.Println("Reading Precipitation")
 	prcps := processPrecipCSV(pathToFile, d, stationIDMap)
 	_, err = db.Collection("precips").InsertMany(context.TODO(), prcps)
 	if err != nil {
 		log.Fatal(err)
 	}
+	fmt.Println("Added Precipitation")
 
 	prcps = []interface{}{}
 
 	// DAILY CSV
+	fmt.Println("Reading Daily")
 	dlys := processDailyCSV(pathToFile, d, stationIDMap)
 	_, err = db.Collection("dailys").InsertMany(context.TODO(), dlys)
 	if err != nil {
 		log.Fatal(err)
 	}
+	fmt.Println("Added Daily")
 
 	dlys = []interface{}{}
 
 	// HOURLY CSV
+	fmt.Println("Reading Hourly")
 	hrlys := processHourlyCSV(pathToFile, d, stationIDMap)
-	_, err = db.Collection("hrlys").InsertMany(context.TODO(), hrlys)
+	_, err = db.Collection("hourlys").InsertMany(context.TODO(), hrlys)
 	if err != nil {
 		log.Fatal(err)
 	}
+	fmt.Println("Added Hourly")
 
 	hrlys = []interface{}{}
 
