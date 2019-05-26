@@ -4,10 +4,6 @@ Go executable to mass import climate csv's to a Mongo database
 
 ## To use:
 
-* Build ...
-* [ optional ] Add exe to environment variables
-* Run with argument: ```path/containing/csv/files```
-
 1. Install [MongoDB 4.0+](https://www.mongodb.com/what-is-mongodb), [Go 1.11.2+](https://golang.org/dl/), [Compass UI](https://www.mongodb.com/products/compass) (optional)
 2. Clone this repository
 3. Download dataset from [NCDC](https://www.ncdc.noaa.gov/orders/qclcd/)
