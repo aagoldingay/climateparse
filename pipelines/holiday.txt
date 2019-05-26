@@ -1,0 +1,17 @@
+[{$lookup: {
+  from: 'dailys',
+  localField: 'wban',
+  foreignField: 'wban',
+  as: 'daily_'
+}}, {$unwind: {
+  path : "$daily_"
+}}, {$project: {
+  "wban" : 1,
+  "daily_" : 1,
+  "location" : 1
+}}, {$match: {
+  $and:[
+    {"daily_.yearmonthday" : {$gte : ISODate('2017-12-01'), $lt : ISODate('2017-12-05')}},
+    {"daily_.tmax" : {$gte : 20}}
+  ]
+}}]

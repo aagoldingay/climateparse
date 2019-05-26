@@ -1,0 +1,23 @@
+[{$match: {
+  state : "AK"
+}}, {$lookup: {
+  from: 'dailys',
+  localField: 'wban',
+  foreignField: 'wban',
+  as: 'dailys_'
+}}, {$unwind: {
+  path: "$dailys_"
+}}, {$project: {
+  wban : 1,
+  state : 1,
+  location : 1,
+  "dailys_.yearmonthday" : 1,
+  "dailys_.preciptotal" : 1,
+  "dailys_.snowfall" : 1
+}}, {$match: {
+  $and:[
+    {"dailys_.yearmonthday" : {$gte : ISODate('2017-12-01'), $lt : ISODate('2017-12-10')}},
+    {"dailys_.preciptotal" : {$eq : 0}},
+    {"dailys_.snowfall" : {$eq : 0}}
+  ]
+}}]
